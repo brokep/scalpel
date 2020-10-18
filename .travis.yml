@@ -1,17 +1,17 @@
 notifications:
   email: false
 
-# Use new container infrastructure to enable caching
-sudo: false
+# https://docs.haskellstack.org/en/stable/travis_ci/
+# https://nixos.wiki/wiki/Nix_on_Travis
+language: nix
+cache:
+  directories:
+  - $HOME/nix.store
+  - $HOME/.stack
+  - $TRAVIS_BUILD_DIR/.stack-work
 
-# Choose a lightweight base image; we provide our own build tools.
-language: c
-
-# GHC depends on GMP. You can add other dependencies here as well.
-addons:
-  apt:
-    packages:
-    - libgmp-dev
+os: linux
+dist: bionic
 
 # The different configurations we want to test. You could also do things like
 # change flags or use --stack-yaml to point to a different file.
@@ -19,26 +19,31 @@ env:
   global:
     - ARGS="--no-terminal --install-ghc"
   matrix:
-    - YAML="./stack.yaml"               CMD="bench scalpel-core"
-    - YAML="./stack.yaml"               CMD="test --haddock"
-    - YAML="./.travis/stack-lts-3.yaml" CMD="test --haddock"
-    - YAML="./.travis/stack-lts-6.yaml" CMD="test --haddock"
-    - YAML="./.travis/stack-lts-7.yaml" CMD="test --haddock"
-    - YAML="./.travis/stack-nightly-20190117.yaml" CMD="test --haddock"
+    - YAML="$TRAVIS_BUILD_DIR/.travis/stack-ghc-8-8.yaml" CMD="bench scalpel-core"
+    - YAML="$TRAVIS_BUILD_DIR/.travis/stack-ghc-8-8.yaml" CMD="test --haddock"
+    - YAML="$TRAVIS_BUILD_DIR/.travis/stack-lts-3.yaml" CMD="test --haddock"
+    - YAML="$TRAVIS_BUILD_DIR/.travis/stack-lts-6.yaml" CMD="test --haddock"
+    - YAML="$TRAVIS_BUILD_DIR/.travis/stack-lts-7.yaml" CMD="test --haddock"
+    - YAML="$TRAVIS_BUILD_DIR/.travis/stack-ghc-8-6.yaml" CMD="test --haddock"
+    # - YAML="$TRAVIS_BUILD_DIR/.travis/stack-ghc-8-8.yaml" CMD="test --haddock"
+    - YAML="$TRAVIS_BUILD_DIR/.travis/stack-ghc-8-10.yaml" CMD="test --haddock"
 
 before_install:
-# Download and unpack the stack executable
-- mkdir -p ~/.local/bin
-- export PATH=$HOME/.local/bin:$PATH
-- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - sudo mkdir -p /etc/nix
+  - echo "substituters = https://cache.nixos.org/ file://$HOME/nix.store" | sudo tee -a /etc/nix/nix.conf > /dev/null
+  - echo 'require-sigs = false' | sudo tee -a /etc/nix/nix.conf > /dev/null
+  - nix-env -iA nixpkgs.stack
 
-# This line does all of the work: installs GHC if necessary, build the library,
-# executables, and test suites, and runs the test suites. --no-terminal works
-# around some quirks in Travis's terminal implementation.
+before_cache:
+  - mkdir -p $HOME/nix.store
+  - nix copy --to file://$HOME/nix.store -f default.nix buildInputs
+
+before_script:
+  - sudo mkdir -p /etc/nix && echo 'sandbox = true' | sudo tee /etc/nix/nix.conf
+
 script:
-- stack --stack-yaml $YAML $ARGS $CMD
-
-# Caching so the next build will be fast too.
-cache:
-  directories:
-  - $HOME/.stack
+  - rm stack.yaml
+  - cp $YAML stack.yaml
+  - pwd
+  - ls
+  - stack build

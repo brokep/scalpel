@@ -3,4 +3,4 @@ packages:
 - ../scalpel/
 - ../scalpel-core/
 - ../examples/
-resolver: nightly-2020-01-17
+resolver: nightly-2020-10-18

@@ -1,6 +1,1 @@
-flags: {}
-packages:
-- scalpel/
-- scalpel-core/
-- examples/
-resolver: lts-13.7
+.travis/stack-ghc-8-8.yaml

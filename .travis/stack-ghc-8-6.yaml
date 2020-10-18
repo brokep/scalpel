@@ -1,0 +1,6 @@
+flags: {}
+packages:
+- scalpel/
+- scalpel-core/
+- examples/
+resolver: lts-14.27
